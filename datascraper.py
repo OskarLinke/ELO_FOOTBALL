@@ -103,6 +103,9 @@ print("Finished L1")
 df = add_tournament(1999, 2025, "L2", "https://www.worldfootball.net/all_matches/eng-league-two-", df)
 print("Finished L2")
 
+df['date'] = df['date'].replace('00/00/1939', '07/09/1939')
+df['date'] = pd.to_datetime(df['date'], format = '%d/%m/%Y')
+df = df.sort_values('date')
 
 
 
