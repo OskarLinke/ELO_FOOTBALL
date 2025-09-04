@@ -23,13 +23,13 @@ for team in all_teams:
         first_appearance = df_leagues_only.loc[first_row_idx]
 
         if first_appearance['tournament'] == "PL": 
-            all_teams_dict[team] = {"elo": 2600, "provisional": True, "max_elo": 2600, "max_elo_date": first_appearance['date'], "games_played": 0}
+            all_teams_dict[team] = {"elo": 2600, "provisional": True, "max_elo": 2600, "max_elo_date": first_appearance['date'], "games_played": 0, "opp_rts": [], "pts_in_ssn": 0}
         elif first_appearance['tournament'] == "CS":
-            all_teams_dict[team] = {"elo": 2500, "provisional": True, "max_elo": 2500, "max_elo_date": first_appearance['date'], "games_played": 0}
+            all_teams_dict[team] = {"elo": 2500, "provisional": True, "max_elo": 2500, "max_elo_date": first_appearance['date'], "games_played": 0, "opp_rts": [], "pts_in_ssn": 0}
         elif first_appearance['tournament'] == "L1": 
-            all_teams_dict[team] = {"elo": 2350, "provisional": True, "max_elo": 2350, "max_elo_date": first_appearance['date'], "games_played": 0}
+            all_teams_dict[team] = {"elo": 2350, "provisional": True, "max_elo": 2350, "max_elo_date": first_appearance['date'], "games_played": 0, "opp_rts": [], "pts_in_ssn": 0}
         elif first_appearance['tournament'] == "L2": 
-            all_teams_dict[team] = {"elo": 2200, "provisional": True, "max_elo": 2200, "max_elo_date": first_appearance['date'], "games_played": 0}
+            all_teams_dict[team] = {"elo": 2200, "provisional": True, "max_elo": 2200, "max_elo_date": first_appearance['date'], "games_played": 0, "opp_rts": [], "pts_in_ssn": 0}
 
 
     else:
@@ -37,7 +37,7 @@ for team in all_teams:
         appearances = (df['home_team'] == team) | (df['away_team'] == team) 
         first_row_idx = appearances.idxmax()
         first_appearance = df.loc[first_row_idx]
-        all_teams_dict[team] = {"elo": 2000, "provisional": True, "max_elo": 2000, "max_elo_date": first_appearance['date'], "games_played": 0}
+        all_teams_dict[team] = {"elo": 2000, "provisional": True, "max_elo": 2000, "max_elo_date": first_appearance['date'], "games_played": 0, "opp_rts": [], "pts_in_ssn": 0}
 
 
 

@@ -46,6 +46,31 @@ def calc_elo(home_team, away_team, result):
     return Ra_ , Rb_
 
 
+#Two following functions are from https://en.wikipedia.org/wiki/Performance_rating_(chess)
+
+def expected_score(opponent_ratings: list[float], own_rating: float) -> float:
+    """How many points we expect to score in a tourney with these opponents"""
+    return sum(
+        1 / (1 + 10**((opponent_rating - own_rating) / 400))
+        for opponent_rating in opponent_ratings
+    )
+
+
+def performance_rating(opponent_ratings: list[float], score: float) -> int:
+    """Calculate mathematically perfect performance rating with binary search"""
+    lo, hi = 0, 4000
+
+    while hi - lo > 0.001:
+        mid = (lo + hi) / 2
+
+        if expected_score(opponent_ratings, mid) < score:
+            lo = mid
+        else:
+            hi = mid
+
+    return mid
+
+
 def run_game(home_team, away_team, result, date, top100): 
     teams_dict[home_team]['elo'], teams_dict[away_team]['elo'] = calc_elo(home_team, away_team, result)
     
