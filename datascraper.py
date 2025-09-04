@@ -11,19 +11,19 @@ scraper = cloudscraper.create_scraper()
 # Make the request
 
 
-def scrape_from_url(url, df, tournament): 
+def scrape_from_url(url, df, tournament, season): 
     # Find the table - adjust the selector based on the actual table structuretable
     response = scraper.get(url)
     # Parse with BeautifulSoup
     soup = BeautifulSoup(response.content, 'html.parser')
-
     table = soup.find('table', class_='standard_tabelle')  # You might need to adjust this selector
+    
 
 
 
     matches = []
     current_date = None
-
+    
 
     if table:
         # Iterate through each row in the table body
@@ -51,27 +51,38 @@ def scrape_from_url(url, df, tournament):
             away_team = away_team_link['href'].split('/')[-2] if away_team_link and away_team_link.get('href') else columns[4].get_text(strip=True)
             
             # Extract score from the last column or score column
-            score = columns[-2].get_text(strip=True)  # Usually last column contains score
-            score = re.search(r'^(\d+):(\d+)\s?', score)
-            if score is not None: 
-                home_goals, away_goals = score.groups()
-            else: 
-                continue
             
 
-            if home_goals > away_goals: 
-                result = 'H' 
-            elif away_goals > home_goals: 
-                result = "A"
-            else: 
+
+            score = columns[-2].get_text(strip=True)  # Usually last column contains score
+            
+            et_score = re.search(r'\b(aet|pso)\b', score) 
+
+            if et_score is not None: 
                 result = 'D'
+            else:
+
+                score = re.search(r'^(\d+):(\d+)\s?', score)
+                if score is not None: 
+                    home_goals, away_goals = score.groups()
+                else: 
+                    continue
+                
+
+                if home_goals > away_goals: 
+                    result = 'H' 
+                elif away_goals > home_goals: 
+                    result = "A"
+                else: 
+                    result = 'D'
             
             matches.append({
                 'date': current_date,
                 'home_team': home_team,
                 'away_team': away_team,
                 'result': result,
-                'tournament': tournament
+                'tournament': tournament,
+                'season' : season
             })
 
     new_matches = pd.DataFrame(matches)
@@ -87,7 +98,7 @@ def add_tournament(start_year, end_year, tournament_name, base_url, df):
         url_year = str(current_year) + "-"+str(current_year+1)
         current_year += 1 
         url = base_url+url_year
-        df = scrape_from_url(url, df, tournament_name)
+        df = scrape_from_url(url, df, tournament_name, url_year)
     return df
 
 df = add_tournament(1888, 2025, "PL","https://www.worldfootball.net/all_matches/eng-premier-league-", df )
@@ -103,12 +114,14 @@ print("Finished L1")
 df = add_tournament(1999, 2025, "L2", "https://www.worldfootball.net/all_matches/eng-league-two-", df)
 print("Finished L2")
 
+
 df['date'] = df['date'].replace('00/00/1939', '07/09/1939')
 df['date'] = pd.to_datetime(df['date'], format = '%d/%m/%Y')
-df = df.sort_values('date')
+
+df = df.sort_values('date').reindex()
 
 
 
 print(df)
-df.to_csv('all_games.csv', index = False)
+df.to_csv('all_games.csv', index = True)
 

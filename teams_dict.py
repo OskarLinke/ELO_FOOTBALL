@@ -40,7 +40,7 @@ for team in all_teams:
         all_teams_dict[team] = {"elo": 2000, "provisional": True, "max_elo": 2000, "max_elo_date": first_appearance['date'], "games_played": 0}
 
 
-all_teams_dict['wolverhampton'] = all_teams_dict.pop('wolverhampton-wanderers')
+
 
 with open('teams_dict.pkl', 'wb') as f:
     pkl.dump(all_teams_dict, f)

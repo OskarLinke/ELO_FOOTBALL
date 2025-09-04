@@ -9,7 +9,7 @@ with open('teams_dict.pkl', 'rb') as f:
 
 top100_row = ['team_name', 2000, 'date']
 
-top100 = np.array([top100_row] * 100)
+top100 = np.array([top100_row] * 100, dtype = object)
 
 
 games_df = pd.read_csv("all_games.csv")
@@ -23,7 +23,8 @@ def calc_elo(home_team, away_team, result):
         res = 0.5
     elif result == 'A': 
         res = 0 
-    else: 
+    else:
+        print(result)
         raise ValueError('Unexpected result of game (Not H, D or A)')
     Ra = teams_dict[home_team]['elo']
     Rb = teams_dict[away_team]['elo']
@@ -93,7 +94,7 @@ def run_game(home_team, away_team, result, date, top100):
 
 for row in games_df.itertuples():
 
-    top100 = run_game(row[2], row[3], row[4], row[1], top100)
+    top100 = run_game(row[3], row[4], row[5], row[2], top100)
 
 
 
