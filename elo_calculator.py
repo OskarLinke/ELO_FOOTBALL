@@ -9,14 +9,14 @@ with open('teams_dict.pkl', 'rb') as f:
 
 top100_row = ['team_name', 2000, 'date']
 
-top100 = np.array([top100_row] * 100, dtype = object)
+top100oat = np.array([top100_row] * 100, dtype = object)
 
 
 games_df = pd.read_csv("all_games.csv")
 
 
 def calc_elo(home_team, away_team, result): 
-    #All calculations from https://en.wikipedia.org/wiki/Elo_rating_system
+    #All formulas from https://en.wikipedia.org/wiki/Elo_rating_system
     if result == 'H': 
         res = 1 
     elif result == 'D': 
@@ -41,8 +41,15 @@ def calc_elo(home_team, away_team, result):
         Rb_ = Rb + 32 * ((1-res) - Eb)
     else: 
         Rb_ = Rb + 16 * ((1-res)-Eb)   
-    
-    
+   
+
+    teams_dict[home_team]['opp_rts'].append(teams_dict[away_team]['elo']) 
+
+    teams_dict[away_team]['opp_rts'].append(teams_dict[home_team]['elo'])
+
+    teams_dict[home_team]['pts_in_ssn'] += res
+    teams_dict[away_team]['pts_in_ssn'] += (1-res)
+
     return Ra_ , Rb_
 
 
@@ -71,7 +78,7 @@ def performance_rating(opponent_ratings: list[float], score: float) -> int:
     return mid
 
 
-def run_game(home_team, away_team, result, date, top100): 
+def run_game(home_team, away_team, result, date, top100oat): 
     teams_dict[home_team]['elo'], teams_dict[away_team]['elo'] = calc_elo(home_team, away_team, result)
     
 
@@ -79,59 +86,85 @@ def run_game(home_team, away_team, result, date, top100):
         teams_dict[home_team]['max_elo'] = teams_dict[home_team]['elo']
         teams_dict[home_team]['max_elo_date'] = date
 
-        if teams_dict[home_team]['elo'] > float(top100[0][1]):
-            if home_team in top100[:,0]: 
-                mask = top100[:,0] == home_team 
-                top100[mask,1] = teams_dict[home_team]['elo']
-                top100[mask,2] = date
+        if teams_dict[home_team]['elo'] > float(top100oat[0][1]):
+            if home_team in top100oat[:,0]: 
+                mask = top100oat[:,0] == home_team 
+                top100oat[mask,1] = teams_dict[home_team]['elo']
+                top100oat[mask,2] = date
             else: 
-                top100[0] = [home_team, teams_dict[home_team]['elo'], date]
-            top100 = top100[top100[:,1].argsort()]
+                top100oat[0] = [home_team, teams_dict[home_team]['elo'], date]
+            top100oat = top100oat[top100oat[:,1].argsort()]
 
 
     if (teams_dict[away_team]['elo'] > teams_dict[away_team]['max_elo']) and (not teams_dict[away_team]['provisional']): 
         teams_dict[away_team]['max_elo'] = teams_dict[away_team]['elo']
         teams_dict[away_team]['max_elo_date'] = date
 
-        if teams_dict[away_team]['elo'] > float(top100[0][1]):
-            if away_team in top100[:,0]: 
-                mask = top100[:,0] == away_team 
-                top100[mask,1] = teams_dict[away_team]['elo']
-                top100[mask,2] = date
+        if teams_dict[away_team]['elo'] > float(top100oat[0][1]):
+            if away_team in top100oat[:,0]: 
+                mask = top100oat[:,0] == away_team 
+                top100oat[mask,1] = teams_dict[away_team]['elo']
+                top100oat[mask,2] = date
             else: 
-                top100[0] = [away_team, teams_dict[away_team]['elo'], date]
-            top100 = top100[top100[:,1].argsort()]
+                top100oat[0] = [away_team, teams_dict[away_team]['elo'], date]
+            top100oat = top100oat[top100oat[:,1].argsort()]
 
             
     teams_dict[home_team]['games_played'] += 1
     teams_dict[away_team]['games_played'] += 1 
 
-    if teams_dict[home_team]['games_played'] >= 100: 
+    if teams_dict[home_team]['games_played'] >= 25: 
         teams_dict[home_team]['provisional'] = False 
     
-    if teams_dict[away_team]['games_played'] >= 100: 
+    if teams_dict[away_team]['games_played'] >= 25: 
         teams_dict[away_team]['provisional'] = False 
     
-    return top100
+    return top100oat
 
 
 
+def save_top_20(top20, teams_dict, month, year):
+    teams_that_have_played = {k: v for k,v in teams_dict.items() if v['games_played'] > 0} 
 
+    team_elo_tuples = [(inner_dict['elo'], name) for name, inner_dict in teams_that_have_played.items() if 'elo' in inner_dict]
+    sorted_teams = sorted(team_elo_tuples, key=lambda x: x[0], reverse=True)[:20]
+    
+    y_m_key = year +"-"+ month
+    top20[y_m_key] = sorted_teams 
+    return top20
+    
+    
+    
+
+top20_by_month = {}
+current_month = games_df.iloc[0]['date'][5]+ games_df.iloc[0]['date'][6]
 for row in games_df.itertuples():
 
-    top100 = run_game(row[3], row[4], row[5], row[2], top100)
+    month = row[2][5] + row[2][6] 
+    if month != current_month: 
+
+        #Save top 20 at the end of previous month 
+        year = row[2][0] + row[2][1] + row[2][2] + row[2][3]
+        top20_by_month = save_top_20(top20_by_month, teams_dict, current_month, year) 
+        current_month = month
+
+    top100oat = run_game(row[3], row[4], row[5], row[2], top100oat)
 
 
 
+top20_df = pd.DataFrame.from_dict(top20_by_month, orient='index', columns=[str(i) for i in range(1,21)])
+top20_df.index.name = 'date'
+top20_df = top20_df.reset_index()
 
 
 with open('finished_teams_dict.pkl', 'wb') as f: 
     pkl.dump(teams_dict, f)
 
-with open('finished_top100.pkl', 'wb') as f: 
-    pkl.dump(top100, f)
+with open('finished_top100oat.pkl', 'wb') as f: 
+    pkl.dump(top100oat, f)
 
-print(top100)
+top20_df.to_csv("top20_by_month.csv")
+
 
 
 
