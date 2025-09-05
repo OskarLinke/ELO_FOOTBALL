@@ -7,9 +7,13 @@ with open('teams_dict.pkl', 'rb') as f:
 
 
 
-top100_row = ['team_name', 2000, 'date']
+
+top100_row = ['team_name', 1000, 'date']
 
 top100oat = np.array([top100_row] * 100, dtype = object)
+top100perfs = np.array([top100_row] * 100, dtype = object)
+top20_by_month = {}
+
 
 
 games_df = pd.read_csv("all_games.csv")
@@ -89,10 +93,10 @@ def run_game(home_team, away_team, result, date, top100oat):
         if teams_dict[home_team]['elo'] > float(top100oat[0][1]):
             if home_team in top100oat[:,0]: 
                 mask = top100oat[:,0] == home_team 
-                top100oat[mask,1] = teams_dict[home_team]['elo']
+                top100oat[mask,1] = round(teams_dict[home_team]['elo'], 2)
                 top100oat[mask,2] = date
             else: 
-                top100oat[0] = [home_team, teams_dict[home_team]['elo'], date]
+                top100oat[0] = [home_team, round(teams_dict[home_team]['elo'], 2), date]
             top100oat = top100oat[top100oat[:,1].argsort()]
 
 
@@ -103,10 +107,10 @@ def run_game(home_team, away_team, result, date, top100oat):
         if teams_dict[away_team]['elo'] > float(top100oat[0][1]):
             if away_team in top100oat[:,0]: 
                 mask = top100oat[:,0] == away_team 
-                top100oat[mask,1] = teams_dict[away_team]['elo']
+                top100oat[mask,1] = round(teams_dict[away_team]['elo'],2)
                 top100oat[mask,2] = date
             else: 
-                top100oat[0] = [away_team, teams_dict[away_team]['elo'], date]
+                top100oat[0] = [away_team, round(teams_dict[away_team]['elo'],2), date]
             top100oat = top100oat[top100oat[:,1].argsort()]
 
             
@@ -133,20 +137,44 @@ def save_top_20(top20, teams_dict, month, year):
     top20[y_m_key] = sorted_teams 
     return top20
     
+
+def calc_perf_rats(top100perfs, teams_dict, season):     
+    all_teams = teams_dict.keys()
+    for team in all_teams: 
+        if teams_dict[team]['pts_in_ssn'] > 0 and teams_dict[team]['pts_in_ssn'] != len(teams_dict[team]['opp_rts']): 
+            perf_rat = round(performance_rating(teams_dict[team]['opp_rts'], teams_dict[team]['pts_in_ssn']), 2)
+            if perf_rat > float(top100perfs[0][1]):
+                top100perfs[0] = [team, perf_rat, season]
+                top100perfs = top100perfs[top100perfs[:,1].argsort()]
+
+        teams_dict[team]['pts_in_ssn'] = 0
+        teams_dict[team]['opp_rts'] = []
+
+    return top100perfs
+
+            
+
+
     
     
 
-top20_by_month = {}
 current_month = games_df.iloc[0]['date'][5]+ games_df.iloc[0]['date'][6]
+current_season = games_df.iloc[0]['season']
+
 for row in games_df.itertuples():
-
-    month = row[2][5] + row[2][6] 
+    season = row[7]
+    month = row[2][5] + row[2][6]
     if month != current_month: 
-
+        
         #Save top 20 at the end of previous month 
         year = row[2][0] + row[2][1] + row[2][2] + row[2][3]
         top20_by_month = save_top_20(top20_by_month, teams_dict, current_month, year) 
         current_month = month
+        
+    if season != current_season: 
+        top100perfs = calc_perf_rats(top100perfs, teams_dict, current_season)
+                                          
+        current_season = season
 
     top100oat = run_game(row[3], row[4], row[5], row[2], top100oat)
 
@@ -157,13 +185,22 @@ top20_df.index.name = 'date'
 top20_df = top20_df.reset_index()
 
 
+
 with open('finished_teams_dict.pkl', 'wb') as f: 
     pkl.dump(teams_dict, f)
 
-with open('finished_top100oat.pkl', 'wb') as f: 
-    pkl.dump(top100oat, f)
+
+
+top100oat = top100oat[(-top100oat[:,1]).argsort()]
+top100perfs = top100perfs[(-top100perfs[:,1]).argsort()]
+
+
+
+pd.DataFrame.from_records(top100perfs, columns = ['team', 'performance rating', 'season']).to_csv("top100_performance_ratings.csv")
+pd.DataFrame.from_records(top100oat, columns = ['team', 'peak elo', 'date']).to_csv("finished_top100oat.csv")
 
 top20_df.to_csv("top20_by_month.csv")
+
 
 
 
