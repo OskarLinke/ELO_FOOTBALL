@@ -141,7 +141,7 @@ def save_top_20(top20, teams_dict, month, year):
 def calc_perf_rats(top100perfs, teams_dict, season):     
     all_teams = teams_dict.keys()
     for team in all_teams: 
-        if teams_dict[team]['pts_in_ssn'] > 0 and teams_dict[team]['pts_in_ssn'] != len(teams_dict[team]['opp_rts']): 
+        if teams_dict[team]['pts_in_ssn'] > 0 and  len(teams_dict[team]['opp_rts'])> 10: 
             perf_rat = round(performance_rating(teams_dict[team]['opp_rts'], teams_dict[team]['pts_in_ssn']), 2)
             if perf_rat > float(top100perfs[0][1]):
                 top100perfs[0] = [team, perf_rat, season]
@@ -180,7 +180,7 @@ for row in games_df.itertuples():
 
 
 
-top20_df = pd.DataFrame.from_dict(top20_by_month, orient='index', columns=[str(i) for i in range(1,21)])
+top20_df = pd.DataFrame.from_dict(top20_by_month, orient='index', columns = list(range(1,21)))
 top20_df.index.name = 'date'
 top20_df = top20_df.reset_index()
 
